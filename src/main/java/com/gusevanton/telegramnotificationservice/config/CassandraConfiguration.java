@@ -49,4 +49,8 @@ public class CassandraConfiguration extends AbstractCassandraConfiguration {
         return new CassandraTemplate(session().getObject());
     }
 
+    protected String getContactPoints() {
+        return contactpoints;
+    }
+
 }
