@@ -1,1 +1,1 @@
-[![Build Status](https://travis-ci.org/GusevAnton/telegramserviceserver.svg?branch=master)
+![Build Status](https://travis-ci.org/GusevAnton/telegramserviceserver.svg?branch=master)
