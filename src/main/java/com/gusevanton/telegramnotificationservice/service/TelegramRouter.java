@@ -50,13 +50,14 @@ public class TelegramRouter {
 
     public BiConsumer<Service, Update> serviceRoute = (service, update) -> {
         String messageText = update.message().text();
-        if (messageText.contains("register")) {
+        if (messageText.contains("unregister")) {
+            service.getChatIdSet().remove(update.message().chat().id());
+            servicePersistRepository.persist(service);
+        } else if (messageText.contains("register")) {
             if (service.getChatIdSet() == null)
                 service.setChatIdSet(new HashSet<>());
             service.getChatIdSet().add(update.message().chat().id());
             servicePersistRepository.persist(service);
-        } else if (messageText.contains("unregister")) {
-
         }
     };
 

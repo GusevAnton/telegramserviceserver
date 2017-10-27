@@ -75,9 +75,9 @@ public class TelegramService {
             } else if (telegramConfig.getInitialMessage().equals(messageText))
                 this.startConsumer.accept(update);
             else if (telegramConfig.getMainMenuFirstOption().equals(messageText))
-                this.logConsumer.accept(update);
+                this.logConsumer.accept(update, "register");
             else if (telegramConfig.getMainMenuSecondOption().equals(messageText))
-                this.logConsumer.accept(update);
+                this.logConsumer.accept(update, "unregister");
             else
                 this.defaultConsumer.accept(update);
         });
@@ -88,14 +88,15 @@ public class TelegramService {
         telegramBot.execute(sendMessage);
     };
 
-    private final Consumer<Update> logConsumer = update -> {
+    private final BiConsumer<Update, String> logConsumer = (update, value) -> {
         List<com.gusevanton.telegramnotificationservice.entity.Service> serviceList = serviceRepository.getAll();
-        KeyboardButton[] keyboardButtonArray = new KeyboardButton[serviceList.size()];
+        String[][] keyboardButtonArray = new String[serviceList.size()][];
         AtomicInteger i = new AtomicInteger(0);
-        serviceList.parallelStream().map(service -> new KeyboardButton("/service register " + service.getServicePrimaryKey().getServiceName() + ":" + service.getServicePrimaryKey().getProfile())).forEach(keyboardButton -> keyboardButtonArray[i.getAndIncrement()] = keyboardButton);
+        serviceList.parallelStream().map(service -> "/service " + value + " " + service.getServicePrimaryKey().getServiceName() + ":" + service.getServicePrimaryKey().getProfile()).forEach(keyboardButton -> keyboardButtonArray[i.getAndIncrement()] = new String[]{keyboardButton});
         Long chatId = update.message().chat().id();
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup(keyboardButtonArray);
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup(keyboardButtonArray, true, false, false);
         keyboard.oneTimeKeyboard(true);
+        keyboard.resizeKeyboard(false);
         SendMessage sendMessage = new SendMessage(chatId, telegramConfig.getChooseOption());
         sendMessage.replyMarkup(keyboard);
         telegramBot.execute(sendMessage);
@@ -103,10 +104,11 @@ public class TelegramService {
 
     private final Consumer<Update> startConsumer = update -> {
         Long chatId = update.message().chat().id();
-        Keyboard keyboard = new ReplyKeyboardMarkup(new KeyboardButton[]{
-                new KeyboardButton(telegramConfig.getMainMenuFirstOption()),
-                new KeyboardButton(telegramConfig.getMainMenuSecondOption())
-        });
+        String[][] values = new String[2][];
+        values[0] = new String[]{telegramConfig.getMainMenuFirstOption()};
+        values[1] = new String[]{telegramConfig.getMainMenuSecondOption()};
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup(values);
+        keyboard.resizeKeyboard(false);
         SendMessage sendMessage = new SendMessage(chatId, telegramConfig.getChooseOption());
         sendMessage.replyMarkup(keyboard);
         telegramBot.execute(sendMessage);

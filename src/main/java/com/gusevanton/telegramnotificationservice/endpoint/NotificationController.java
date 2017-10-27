@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashSet;
-import java.util.Iterator;
 
 /**
  * Created by antongusev on 14.10.17.
@@ -75,13 +75,7 @@ public class NotificationController {
                     }
                     return service.getChatIdSet();
                 })
-                .flatMapMany(chatIdSet -> {
-                    Iterator<Long> iterator = chatIdSet.iterator();
-                    if (iterator.hasNext()) {
-                        return Mono.just(iterator.next());
-                    }
-                    return Mono.just(-1L);
-                })
+                .flatMapMany(Flux::fromIterable)
                 .map(chatId -> new SendNotificationRequest(chatId, message, message.getServiceName() + "(" + message.getProfile() + ").txt"))
                 .subscribe(sendNotificationResponse -> {
                     if (sendNotificationResponse.getChatId() >= 0)

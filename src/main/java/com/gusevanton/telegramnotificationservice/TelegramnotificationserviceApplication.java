@@ -3,20 +3,25 @@ package com.gusevanton.telegramnotificationservice;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.gusevanton.telegramnotificationservice.config.ExceptionHandler;
+import com.gusevanton.telegramnotificationservice.config.ProxyConfig;
 import com.gusevanton.telegramnotificationservice.entity.User;
 import com.gusevanton.telegramnotificationservice.service.TelegramService;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -32,6 +37,9 @@ public class TelegramnotificationserviceApplication {
     public static void main(String[] args) {
         SpringApplication.run(TelegramnotificationserviceApplication.class, args);
     }
+
+    @Autowired
+    private ProxyConfig proxyConfig;
 
     @Autowired
     private TelegramService telegramService;
@@ -52,9 +60,20 @@ public class TelegramnotificationserviceApplication {
     }
 
     @Bean
-    @Value("${telegram.token}")
-    public TelegramBot telegramBot(String telegramToken) {
-        TelegramBot telegramBot = new TelegramBot(telegramToken);
+    @ConditionalOnProperty(value = "proxy.use", havingValue = "true")
+    public OkHttpClient okHttpClient() {
+        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyConfig.getHost(), proxyConfig.getPort()));
+        okhttp3.Authenticator authenticator = (route, response) -> response.request().newBuilder().header("Proxy-Authorization", Credentials.basic(proxyConfig.getUsername(), proxyConfig.getPassword())).build();
+        return okHttpClientBuilder.proxy(proxy).proxyAuthenticator(authenticator).build();
+    }
+
+    @Bean
+    public TelegramBot telegramBot(@Autowired(required = false) OkHttpClient okHttpClient, @Value("${telegram.token}") String telegramToken) {
+        TelegramBot.Builder builder = new TelegramBot.Builder(telegramToken);
+        if (okHttpClient != null)
+            builder.okHttpClient(okHttpClient);
+        TelegramBot telegramBot = builder.build();
         telegramBot.setUpdatesListener((updates) -> {
             try {
                 telegramService.router.accept(updates);

@@ -1,12 +1,13 @@
 package com.gusevanton.telegramnotificationservice.service;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gusevanton.telegramnotificationservice.request.SendNotificationRequest;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.SendDocument;
 import com.pengrad.telegrambot.request.SendMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.gusevanton.telegramnotificationservice.request.SendNotificationRequest;
 
 import java.util.function.Consumer;
 
@@ -27,7 +28,7 @@ public class NotificationService {
     public final Consumer<SendNotificationRequest> sendNotificationDocument = sendNotificationRequest -> {
         byte[] byteArr = null;
         try {
-            byteArr = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(sendNotificationRequest.getServiceMessage());
+            byteArr = objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL).writerWithDefaultPrettyPrinter().writeValueAsBytes(sendNotificationRequest.getServiceMessage());
         } catch (Exception e) {
             e.printStackTrace();
         }
